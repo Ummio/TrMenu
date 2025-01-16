@@ -1,9 +1,10 @@
 package trplugins.menu.api.receptacle.vanilla.window
 
-import net.minecraft.server.v1_16_R3.*
+import net.minecraft.network.protocol.game.*
+import net.minecraft.world.inventory.MenuType
 import org.bukkit.Material
-import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack
-import org.bukkit.craftbukkit.v1_16_R3.util.CraftChatMessage
+import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack
+import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.inventory.InventoryView
@@ -23,11 +24,11 @@ import trplugins.menu.api.receptacle.vanilla.window.StaticInventory.staticInvent
  */
 class NMSImpl : NMS() {
 
-    private val emptyItemStack: net.minecraft.server.v1_16_R3.ItemStack? = CraftItemStack.asNMSCopy((ItemStack(Material.AIR)))
-    private val version = MinecraftVersion.majorLegacy
+    private val emptyItemStack = CraftItemStack.asNMSCopy(ItemStack(Material.AIR))
+    private val version = MinecraftVersion.major
     private val windowIds = HashMap<String, Int>()
 
-    private val Player.windowId get() = windowIds[this.name] ?: 119
+    private val Player.windowId get() = windowIds[name] ?: 119
 
     override fun windowId(player: Player, create: Boolean): Int {
         if (createWindowId() && create) {
@@ -43,7 +44,7 @@ class NMSImpl : NMS() {
             StaticInventory.close(player)
         } else {
             windowIds.remove(player.name)
-            player.sendPacket(PacketPlayOutCloseWindow(windowId))
+            player.sendPacket(ClientboundContainerClosePacket(windowId))
         }
     }
 
@@ -58,38 +59,14 @@ class NMSImpl : NMS() {
                     inventory.setItem(index, item)
                 }
             }
-            version >= 11701 -> {
+            else -> {
                 sendPacket(
                     player,
-                    PacketPlayOutWindowItems::class.java.unsafeInstance(),
+                    ClientboundContainerSetContentPacket::class.java.unsafeInstance(),
                     "containerId" to windowId,
                     "stateId" to 1,
                     "items" to items.map { i -> toNMSCopy(i) }.toList(),
                     "carriedItem" to emptyItemStack
-                )
-            }
-            version >= 11700 -> {
-                sendPacket(
-                    player,
-                    PacketPlayOutWindowItems::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "items" to items.map { i -> toNMSCopy(i) }.toList()
-                )
-            }
-            version >= 11000 -> {
-                sendPacket(
-                    player,
-                    PacketPlayOutWindowItems::class.java.unsafeInstance(),
-                    "a" to windowId,
-                    "b" to items.map { i -> toNMSCopy(i) }.toList()
-                )
-            }
-            else -> {
-                sendPacket(
-                    player,
-                    PacketPlayOutWindowItems::class.java.unsafeInstance(),
-                    "a" to windowId,
-                    "b" to items.map { i -> toNMSCopy(i) }.toTypedArray()
                 )
             }
         }
@@ -100,41 +77,13 @@ class NMSImpl : NMS() {
             player.useStaticInventory() -> {
                 StaticInventory.open(player, type, title)
             }
-            version >= 11900 -> {
-                sendPacket(
-                    player,
-                    PacketPlayOutOpenWindow::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "type" to Containers::class.java.getProperty(type.vanillaId, true),
-                    "title" to CraftChatMessage.fromStringOrNull(title)
-                )
-            }
-            MinecraftVersion.isUniversal -> {
-                sendPacket(
-                    player,
-                    PacketPlayOutOpenWindow::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "type" to type.serialId,
-                    "title" to CraftChatMessage.fromStringOrNull(title)
-                )
-            }
-            version >= 11400 -> {
-                sendPacket(
-                    player,
-                    PacketPlayOutOpenWindow(),
-                    "a" to windowId,
-                    "b" to type.serialId,
-                    "c" to CraftChatMessage.fromStringOrNull(title)
-                )
-            }
             else -> {
                 sendPacket(
                     player,
-                    PacketPlayOutOpenWindow(),
-                    "a" to windowId,
-                    "b" to type.id,
-                    "c" to ChatComponentText(title),
-                    "d" to type.containerSize - 1 // Fixed ViaVersion can not view 6x9 menu bug.
+                    ClientboundOpenScreenPacket::class.java.unsafeInstance(),
+                    "containerId" to windowId,
+                    "type" to MenuType::class.java.getProperty(type.vanillaId, true),
+                    "title" to CraftChatMessage.fromStringOrNull(title)
                 )
             }
         }
@@ -152,18 +101,15 @@ class NMSImpl : NMS() {
                     }
                 }
             }
-            version >= 11701 -> {
+            else -> {
                 sendPacket(
                     player,
-                    PacketPlayOutSetSlot::class.java.unsafeInstance(),
+                    ClientboundContainerSetSlotPacket::class.java.unsafeInstance(),
                     "containerId" to windowId,
-                    "stateId" to -1,
+                    "stateId" to stateId,
                     "slot" to slot,
                     "itemStack" to toNMSCopy(itemStack)
                 )
-            }
-            else -> {
-                player.sendPacket(PacketPlayOutSetSlot(windowId, slot, toNMSCopy(itemStack)))
             }
         }
     }
@@ -176,22 +122,19 @@ class NMSImpl : NMS() {
                 val property = getInventoryProperty(inventory.type, id) ?: return
                 view.setProperty(property, value)
             }
-            MinecraftVersion.isUniversal -> {
+            else -> {
                 sendPacket(
                     player,
-                    PacketPlayOutWindowData::class.java.unsafeInstance(),
+                    ClientboundContainerSetDataPacket::class.java.unsafeInstance(),
                     "containerId" to windowId,
                     "id" to id,
                     "value" to value
                 )
             }
-            else -> {
-                player.sendPacket(PacketPlayOutWindowData(windowId, id, value))
-            }
         }
     }
 
-    private fun toNMSCopy(itemStack: ItemStack?): net.minecraft.server.v1_16_R3.ItemStack? {
+    private fun toNMSCopy(itemStack: ItemStack?): net.minecraft.world.item.ItemStack? {
         return if (itemStack.isAir()) emptyItemStack else CraftItemStack.asNMSCopy(itemStack)
     }
 
