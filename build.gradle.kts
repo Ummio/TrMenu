@@ -71,11 +71,14 @@ subprojects {
         maven("https://repo.tabooproject.org/repository/releases/")
         maven("https://repo.codemc.io/repository/nms/")
         maven("https://repo.opencollab.dev/main/")
+        maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+        maven("https://oss.sonatype.org/content/repositories/snapshots")
     }
 
     dependencies {
         compileOnly(kotlin("stdlib"))
         compileOnly("org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT")
+        compileOnly("org.spigotmc:spigot-server:1.21.4-R0.1-SNAPSHOT")
     }
 
     tasks.withType<JavaCompile> {

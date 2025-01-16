@@ -1,30 +1,17 @@
 package trplugins.menu.api.receptacle.vanilla.window
 
-import net.minecraft.network.protocol.game.*
-import net.minecraft.world.inventory.MenuType
 import org.bukkit.Material
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack
-import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.inventory.InventoryView
 import org.bukkit.inventory.ItemStack
-import taboolib.library.reflex.Reflex.Companion.getProperty
-import taboolib.library.reflex.Reflex.Companion.setProperty
-import taboolib.library.reflex.Reflex.Companion.unsafeInstance
-import taboolib.module.nms.MinecraftVersion
-import taboolib.module.nms.sendPacket
+import taboolib.module.nms.*
 import taboolib.platform.util.isAir
-import trplugins.menu.api.receptacle.vanilla.window.StaticInventory.inventoryView
 import trplugins.menu.api.receptacle.vanilla.window.StaticInventory.staticInventory
 
-/**
- * @author Arasple
- * @date 2020/12/4 21:25
- */
 class NMSImpl : NMS() {
 
-    private val emptyItemStack = CraftItemStack.asNMSCopy(ItemStack(Material.AIR))
+    private val emptyItemStack = ItemStack(Material.AIR)
     private val version = MinecraftVersion.major
     private val windowIds = HashMap<String, Int>()
 
@@ -32,8 +19,8 @@ class NMSImpl : NMS() {
 
     override fun windowId(player: Player, create: Boolean): Int {
         if (createWindowId() && create) {
-            val id = player.getProperty<Int>("entity/containerCounter")!! + 1
-            player.setProperty("entity/containerCounter", id)
+            val id = nmsProxy<Int>("getContainerCounter", player) + 1
+            nmsProxy("setContainerCounter", player, id)
             windowIds[player.name] = id
         }
         return player.windowId
@@ -44,7 +31,7 @@ class NMSImpl : NMS() {
             StaticInventory.close(player)
         } else {
             windowIds.remove(player.name)
-            player.sendPacket(ClientboundContainerClosePacket(windowId))
+            nmsProxy("sendCloseWindow", player, windowId)
         }
     }
 
@@ -60,14 +47,7 @@ class NMSImpl : NMS() {
                 }
             }
             else -> {
-                sendPacket(
-                    player,
-                    ClientboundContainerSetContentPacket::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "stateId" to 1,
-                    "items" to items.map { i -> toNMSCopy(i) }.toList(),
-                    "carriedItem" to emptyItemStack
-                )
+                nmsProxy("sendWindowItems", player, windowId, items)
             }
         }
     }
@@ -78,13 +58,7 @@ class NMSImpl : NMS() {
                 StaticInventory.open(player, type, title)
             }
             else -> {
-                sendPacket(
-                    player,
-                    ClientboundOpenScreenPacket::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "type" to MenuType::class.java.getProperty(type.vanillaId, true),
-                    "title" to CraftChatMessage.fromStringOrNull(title)
-                )
+                nmsProxy("sendOpenWindow", player, windowId, type.vanillaId, title)
             }
         }
     }
@@ -102,14 +76,7 @@ class NMSImpl : NMS() {
                 }
             }
             else -> {
-                sendPacket(
-                    player,
-                    ClientboundContainerSetSlotPacket::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "stateId" to stateId,
-                    "slot" to slot,
-                    "itemStack" to toNMSCopy(itemStack)
-                )
+                nmsProxy("sendSetSlot", player, windowId, slot, itemStack, stateId)
             }
         }
     }
@@ -123,28 +90,12 @@ class NMSImpl : NMS() {
                 view.setProperty(property, value)
             }
             else -> {
-                sendPacket(
-                    player,
-                    ClientboundContainerSetDataPacket::class.java.unsafeInstance(),
-                    "containerId" to windowId,
-                    "id" to id,
-                    "value" to value
-                )
+                nmsProxy("sendWindowData", player, windowId, id, value)
             }
         }
-    }
-
-    private fun toNMSCopy(itemStack: ItemStack?): net.minecraft.world.item.ItemStack? {
-        return if (itemStack.isAir()) emptyItemStack else CraftItemStack.asNMSCopy(itemStack)
-    }
-
-    private fun sendPacket(player: Player, packet: Any, vararg fields: Pair<String, Any?>) {
-        fields.forEach { packet.setProperty(it.first, it.second) }
-        player.sendPacket(packet)
     }
 
     private fun getInventoryProperty(type: InventoryType, id: Int): InventoryView.Property? {
         return InventoryView.Property.entries.find { (it.type == type || (it.type == InventoryType.FURNACE && type == InventoryType.BLAST_FURNACE)) && it.id == id }
     }
-
 }
