@@ -8,6 +8,7 @@ import org.bukkit.inventory.ItemStack
 import taboolib.module.nms.*
 import taboolib.platform.util.isAir
 import trplugins.menu.api.receptacle.vanilla.window.StaticInventory.staticInventory
+import trplugins.menu.api.receptacle.vanilla.window.StaticInventory.inventoryView
 
 class NMSImpl : NMS() {
 
@@ -19,8 +20,8 @@ class NMSImpl : NMS() {
 
     override fun windowId(player: Player, create: Boolean): Int {
         if (createWindowId() && create) {
-            val id = nmsProxy<Int>("getContainerCounter", player) + 1
-            nmsProxy("setContainerCounter", player, id)
+            val id = nmsProxy<Int>("getContainerCounter", player) as Int
+            nmsProxy<Unit>("setContainerCounter", player, id)
             windowIds[player.name] = id
         }
         return player.windowId
@@ -31,7 +32,7 @@ class NMSImpl : NMS() {
             StaticInventory.close(player)
         } else {
             windowIds.remove(player.name)
-            nmsProxy("sendCloseWindow", player, windowId)
+            nmsProxy<Unit>("sendCloseWindow", player, windowId)
         }
     }
 
@@ -47,7 +48,7 @@ class NMSImpl : NMS() {
                 }
             }
             else -> {
-                nmsProxy("sendWindowItems", player, windowId, items)
+                nmsProxy<Unit>("sendWindowItems", player, windowId, items.map { it as Any? }.toTypedArray())
             }
         }
     }
@@ -58,7 +59,7 @@ class NMSImpl : NMS() {
                 StaticInventory.open(player, type, title)
             }
             else -> {
-                nmsProxy("sendOpenWindow", player, windowId, type.vanillaId, title)
+                nmsProxy<Unit>("sendOpenWindow", player, windowId, type.vanillaId, title)
             }
         }
     }
@@ -76,7 +77,7 @@ class NMSImpl : NMS() {
                 }
             }
             else -> {
-                nmsProxy("sendSetSlot", player, windowId, slot, itemStack, stateId)
+                nmsProxy<Unit>("sendSetSlot", player, windowId, slot, itemStack as Any?, stateId)
             }
         }
     }
@@ -90,7 +91,7 @@ class NMSImpl : NMS() {
                 view.setProperty(property, value)
             }
             else -> {
-                nmsProxy("sendWindowData", player, windowId, id, value)
+                nmsProxy<Unit>("sendWindowData", player, windowId, id, value)
             }
         }
     }
