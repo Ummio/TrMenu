@@ -140,4 +140,20 @@ object ItemHelper {
         }
     }
 
+    fun getDyeColor(color: String): DyeColor {
+        return try {
+            DyeColor.valueOf(color.uppercase())
+        } catch (ignored: Exception) {
+            DyeColor.WHITE
+        }
+    }
+
+    fun getColor(material: Material): DyeColor? {
+        return try {
+            DyeColor.valueOf(material.name.replace("_DYE", ""))
+        } catch (ignored: Exception) {
+            null
+        }
+    }
+
 }
