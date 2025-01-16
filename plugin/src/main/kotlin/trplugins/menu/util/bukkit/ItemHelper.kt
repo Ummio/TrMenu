@@ -47,19 +47,7 @@ object ItemHelper {
             val patterns = mutableListOf<Pattern>()
             it.forEach {
                 val type = it.split(" ")
-                if (type.size == 1) {
-                    builder.finishing = {
-                        try {
-                            (it.itemMeta as? BannerMeta)?.let { meta ->
-                                meta.setColor(DyeColor.valueOf(type[0].uppercase()))
-                            }
-                        } catch (e: Exception) {
-                            (it.itemMeta as? BannerMeta)?.let { meta ->
-                                meta.setColor(DyeColor.BLACK)
-                            }
-                        }
-                    }
-                } else if (type.size == 2) {
+                if (type.size == 2) {
                     try {
                         patterns.add(
                             Pattern(
