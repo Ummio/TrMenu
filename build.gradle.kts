@@ -4,7 +4,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     java
     idea
-    kotlin("jvm") version "2.1.0"
+    id("fabric-loom") version "1.5-SNAPSHOT"
+    kotlin("jvm") version "1.9.22"
     id("io.izzel.taboolib") version "2.0.22"
 }
 
@@ -76,6 +77,11 @@ subprojects {
 
     dependencies {
         compileOnly(kotlin("stdlib"))
+        minecraft("com.mojang:minecraft:1.21.4")
+        mappings("net.fabricmc:yarn:1.21.4+build.1:v2")
+        modImplementation("net.fabricmc:fabric-loader:0.15.7")
+        modImplementation("net.fabricmc.fabric-api:fabric-api:0.96.4+1.21.4")
+        modImplementation("net.fabricmc:fabric-language-kotlin:1.10.17+kotlin.1.9.22")
     }
 
     tasks.withType<JavaCompile> {
