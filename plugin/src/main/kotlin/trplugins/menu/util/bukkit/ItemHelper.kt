@@ -50,18 +50,21 @@ object ItemHelper {
                 if (type.size == 1) {
                     builder.finishing = {
                         try {
-                            (it.itemMeta as? BannerMeta)?.baseColor = DyeColor.valueOf(type[0].uppercase())
+                            (it.itemMeta as? BannerMeta)?.let { meta ->
+                                meta.setColor(DyeColor.valueOf(type[0].uppercase()))
+                            }
                         } catch (e: Exception) {
-                            (it.itemMeta as? BannerMeta)?.baseColor = DyeColor.BLACK
+                            (it.itemMeta as? BannerMeta)?.let { meta ->
+                                meta.setColor(DyeColor.BLACK)
+                            }
                         }
                     }
                 } else if (type.size == 2) {
                     try {
                         patterns.add(
                             Pattern(
-                                DyeColor.valueOf(type[0].uppercase()), PatternType.valueOf(
-                                    type[1].uppercase()
-                                )
+                                DyeColor.valueOf(type[0].uppercase()),
+                                PatternType.valueOf(type[1].uppercase())
                             )
                         )
                     } catch (e: Exception) {
